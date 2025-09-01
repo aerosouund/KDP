@@ -29,7 +29,9 @@
 
 - [Open questions](#open-questions)
 
-- [CRD Changes (OPTIONAL)](#crd-changes-optional)
+- [Aditional potential features](#additional-potential-features)
+
+- [CRD Changes](#crd-changes)
 
   
 
