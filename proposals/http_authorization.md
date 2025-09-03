@@ -67,7 +67,7 @@ Rules are applied serially in the policy they appear in. Ordering and result con
 
 The system takes as input a golang `http.Request` object (from the standard library), produces a `http.Response`, and wires it back to the requester. 
 
-An `http.request` CEL object will be introduced in the environment. Which will have the following fields with their respective types
+An `object` CEL object will be introduced in the environment. Which will have the following fields with their respective types
 
 ```golang
 type Request struct {
@@ -109,16 +109,16 @@ type KV struct {
 
 | Function                  | Arguments                  | Return |
 |---------------------------|---------------------------|--------|
-| `http.request.headers.get()`   | `key` (`string`) – get the first value for header with key | `string` |
-| `http.request.headers.getAll()`   | `key` (`string`) get all values for a header that was passed multiple times | `[]string` |
+| `object.headers.get()`   | `key` (`string`) – get the first value for header with key | `string` |
+| `object.headers.getAll()`   | `key` (`string`) get all values for a header that was passed multiple times | `[]string` |
 
 
 ### Query parameters:
 
 | Function                  | Arguments                  | Return |
 |---------------------------|---------------------------|--------|
-| `http.request.queryParams.get()`   | `key` (`string`) – get the first value for a set parameter| `string` |
-| `http.request.queryParams.getAll()`   | `key` (`string`) get all values for a parameter that was passed multiple times | `[]string` |
+| `object.queryParams.get()`   | `key` (`string`) – get the first value for a set parameter| `string` |
+| `object.queryParams.getAll()`   | `key` (`string`) get all values for a parameter that was passed multiple times | `[]string` |
 
 
 ### Response type
@@ -145,7 +145,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-      http.request.headers.get("foo") != "" 
+      object.headers.get("foo") != "" 
         ? http.response().status(200)
         : http.response().status(400).withBody("header 'foo' is required")
 ```
@@ -162,7 +162,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-      http.request.headers.get("foo") == "bar" 
+      object.headers.get("foo") == "bar" 
         ? http.response().status(200)
         : http.response().status(400).withBody("header 'foo' must have value 'bar'")
 ```
@@ -179,7 +179,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-      http.request.headers.get("foo") == "bar" && http.request.path == "/v1/users"
+      object.headers.get("foo") == "bar" && object.path == "/v1/users"
         ? http.response().status(200)
         : http.response().status(400).withBody("header 'foo' must have value 'bar' when calling /v1/users")
 ```
@@ -196,7 +196,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-      http.request.headers.get("foo") == "bar" && http.request.path.matches("/*/users") && http.request.method == "POST"
+      object.headers.get("foo") == "bar" && object.path.matches("/*/users") && object.method == "POST"
         ? http.response().status(400)
         : http.response().status(200)
 ```
@@ -213,7 +213,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-      http.request.headers.get("foo") == "bar" && http.request.path.startsWith("/users") && http.request.method == "POST"
+      object.headers.get("foo") == "bar" && object.path.startsWith("/users") && object.method == "POST"
         ? http.response().status(200)
         : http.response().status(400)
 ```
@@ -230,7 +230,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-      http.request.headers.get("foo") == "bar" && http.request.queryParams.get("something") == "someone"
+      object.headers.get("foo") == "bar" && object.queryParams.get("something") == "someone"
         ? http.response().status(200)
         : http.response().status(400)
 ```
@@ -247,7 +247,7 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-       "bar" in http.request.headers.getAll("foo")
+       "bar" in object.headers.getAll("foo")
         ? http.response().status(200)
         : http.response().status(400)
 ```
@@ -264,15 +264,15 @@ spec:
     mode: HTTP
   validations:
   - expression: >
-       "undesiredHeaderVal" in http.request.headers.getAll("foo")
+       "undesiredHeaderVal" in object.headers.getAll("foo")
         ? http.response().status(400)
         : null
   - expression: >
-       "undesiredParamVal" in http.request.queryParams.getAll("foo")
+       "undesiredParamVal" in object.queryParams.getAll("foo")
         ? http.response().status(400)
         : null
   - expression: >
-      http.request.headers.get("users") == "allowedUser"
+      object.headers.get("users") == "allowedUser"
         && http.response().status(200)
 ```
 
@@ -293,7 +293,7 @@ spec:
   - name: jwks
     expression: "https://myidp.com/.well-known/jwks.json"
   - name: authorization
-    expression: http.request.headers.get("authorization").split(" ")
+    expression: object.headers.get("authorization").split(" ")
   - name: token
     expression: >
       size(variables.authorization) == 2 &&
@@ -319,7 +319,7 @@ spec:
     mode: HTTP
   variables:
   - name: bodySize
-    expression: size(http.request.rawBody)
+    expression: size(object.rawBody)
   - name: maxSizeBytes
     expression: 1048576  # 1MB limit
   validations:
@@ -341,24 +341,24 @@ spec:
     mode: HTTP
   variables:
   - name: contentType
-    expression: http.request.headers.get("content-type")
+    expression: object.headers.get("content-type")
   - name: contentLength
-    expression: int(http.request.headers.get("content-length"))
+    expression: int(object.headers.get("content-length"))
   - name: allowedTypes
     expression: ["image/jpeg", "image/png", "application/pdf"]
   validations:
   - expression: >
-      http.request.method == "POST" && http.request.path.startsWith("/upload")
+      object.method == "POST" && object.path.startsWith("/upload")
         && variables.contentLength > 10485760  # 10MB limit
         ? http.response().status(413).withBody("File too large")
         : null
   - expression: >
-      http.request.method == "POST" && http.request.path.startsWith("/upload")
+      object.method == "POST" && object.path.startsWith("/upload")
         && !(variables.contentType in variables.allowedTypes)
         ? http.response().status(415).withBody("Unsupported file type")
         : null
   - expression: >
-      http.request.method == "POST" && http.request.path.startsWith("/upload")
+      object.method == "POST" && object.path.startsWith("/upload")
         ? http.response().status(200)
             .withHeader("x-content-type-options", "nosniff")
             .withHeader("x-frame-options", "DENY")
@@ -378,9 +378,9 @@ spec:
     mode: HTTP
   variables:
   - name: clientIp
-    expression: http.request.headers.get("x-forwarded-for").split(",")[0]
+    expression: object.headers.get("x-forwarded-for").split(",")[0]
   - name: userAgent
-    expression: http.request.headers.get("user-agent")
+    expression: object.headers.get("user-agent")
   - name: blockedIps
     expression: ["192.168.1.100", "10.0.0.50"]
   validations:
@@ -403,7 +403,7 @@ spec:
 
 - Expose an HTTP endpoint that will receive requests and evaluate them through the existing policies
 
-- Declare `http.request` as a variable in the CEL environment
+- Declare `object` as a variable in the CEL environment
 
 - Declare a new global overload: `http.response()`, to instantiate a response object
 
